@@ -1,0 +1,197 @@
+<script>
+  const API_KEY = "AQ.Ab8RN6KOFK1bdtAiv4BwNi8wbhzo0LTRwgXylAWkrWOAxzohYw";
+</script>
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIRA AI</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+    body {
+      background: radial-gradient(circle at center, #06182c 0%, #020810 100%);
+      color: #00f0ff;
+      height: 88vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      overflow: hidden;
+      padding: 15px;
+    }
+    .header {
+      width: 100%;
+      text-align: center;
+      border-bottom: 2px solid #ff9900;
+      padding-bottom: 8px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      letter-spacing: 6px;
+      color: #1ef3ff;
+      text-shadow: 0 0 15px #00d9ff, 2px 2px 0px #ff9900;
+    }
+    .subtitle { font-size: 0.7rem; color: #ff9900; letter-spacing: 1.5px; margin-top: 2px; }
+    canvas { display: block; max-width: 100%; }
+    .controls { text-align: center; width: 100%; }
+    #status {
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      color: #a0e9ff;
+      min-height: 45px;
+      max-height: 85px;
+      overflow-y: auto;
+    }
+    button {
+      background: rgba(0, 240, 255, 0.15);
+      border: 2px solid #00f0ff;
+      color: #00f0ff;
+      padding: 14px 38px;
+      font-size: 1.1rem;
+      border-radius: 30px;
+      font-weight: bold;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+    button.listening {
+      background: #00f0ff;
+      color: #020810;
+      border-color: #ff9900;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>AIRA</h1>
+    <div class="subtitle">PERSONAL AI OF DINESH KUMAR GUPTA</div>
+  </div>
+
+  <canvas id="sphereCanvas" width="275" height="275"></canvas>
+
+  <div class="controls">
+    <div id="status">नमस्ते सर, माइक दबाकर आदेश दें...</div>
+    <button id="micBtn">🎤 Speak / बोलें</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('sphereCanvas');
+    const ctx = canvas.getContext('2d');
+    let angleY = 0, speed = 0.018;
+    const dots = [];
+
+    for (let i = 0; i < 280; i++) {
+      const phi = Math.acos(-1 + (2 * i) / 280);
+      const theta = Math.sqrt(280 * Math.PI) * phi;
+      dots.push({
+        x: 92 * Math.cos(theta) * Math.sin(phi),
+        y: 92 * Math.sin(theta) * Math.sin(phi),
+        z: 92 * Math.cos(phi),
+        isOrange: Math.random() < 0.14
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, 275, 275);
+      ctx.beginPath(); ctx.arc(137, 137, 120, 0.2, Math.PI * 1.6);
+      ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2; ctx.stroke();
+
+      ctx.beginPath(); ctx.arc(137, 137, 130, -0.5, 1.2);
+      ctx.strokeStyle = '#ff9900'; ctx.lineWidth = 2; ctx.stroke();
+
+      dots.forEach(dot => {
+        const x1 = dot.x * Math.cos(angleY) - dot.z * Math.sin(angleY);
+        const z1 = dot.z * Math.cos(angleY) + dot.x * Math.sin(angleY);
+        const scale = 220 / (220 + z1);
+        ctx.beginPath();
+        ctx.arc(137 + x1 * scale, 137 + dot.y * scale, (dot.isOrange ? 2.5 : 2) * scale, 0, Math.PI * 2);
+        ctx.fillStyle = dot.isOrange ? '#ff9900' : (z1 < 0 ? '#33f3ff' : '#0077aa');
+        ctx.fill();
+      });
+      angleY += speed;
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    const micBtn = document.getElementById('micBtn');
+    const statusText = document.getElementById('status');
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function speak(text) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/[*#_]/g, ''));
+      u.lang = 'hi-IN';
+      speed = 0.06;
+      u.onend = () => { speed = 0.018; };
+      window.speechSynthesis.speak(u);
+    }
+
+    async function askAIRA(command) {
+      statusText.innerText = "सोच रही हूँ सर...";
+      const promptText = `तुम AIRA हो, दिनेश कुमार गुप्ता की पर्सनल सुपर AI। मालिक को "सर" कहो। देश-दुनिया के हर सवाल का छोटा जवाब दो। अगर कॉल करने कहें तो [CALL:नंबर], यूट्यूब/गाने कहें तो [YT:नाम], गूगल कहें तो [GO:शब्द], जीमेल कहें तो [MAIL:] लिखो। आदेश: ` + command;
+
+      try {
+        const res = await fetch('https://googleapis.com', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': API_KEY.trim()
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }]
+          })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+
+        let reply = data.candidates[0].content.parts[0].text;
+
+        if (reply.includes('[CALL:')) {
+          const num = reply.match(/\[CALL:(.*?)\]/)[1].replace(/[^0-9+]/g, '');
+          reply = reply.replace(/\[CALL:.*?\]/, '').trim();
+          setTimeout(() => location.href = 'tel:' + num, 1000);
+        } else if (reply.includes('[YT:')) {
+          const q = reply.match(/\[YT:(.*?)\]/)[1];
+          reply = reply.replace(/\[YT:.*?\]/, '').trim();
+          setTimeout(() => window.open('https://youtube.com' + encodeURIComponent(q), '_blank'), 1000);
+        } else if (reply.includes('[GO:')) {
+          const q = reply.match(/\[GO:(.*?)\]/)[1];
+          reply = reply.replace(/\[GO:.*?\]/, '').trim();
+          setTimeout(() => window.open('https://google.com' + encodeURIComponent(q), '_blank'), 1000);
+        } else if (reply.includes('[MAIL:]')) {
+          reply = reply.replace('[MAIL:]', '').trim();
+          setTimeout(() => window.open('https://google.com', '_blank'), 1000);
+        }
+
+        statusText.innerText = reply;
+        speak(reply);
+      } catch (err) {
+        statusText.innerText = "त्रुटि: " + err.message;
+        speak("क्षमा करें सर, सर्वर से संपर्क नहीं हो पाया।");
+      }
+    }
+
+    if (SpeechRec) {
+      const rec = new SpeechRec();
+      rec.lang = 'hi-IN';
+      micBtn.onclick = () => {
+        rec.start();
+        micBtn.classList.add('listening');
+        statusText.innerText = "सुन रही हूँ सर...";
+        speed = 0.05;
+      };
+      rec.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        statusText.innerText = "आप: " + text;
+        micBtn.classList.remove('listening');
+        askAIRA(text);
+      };
+      rec.onerror = () => {
+        micBtn.classList.remove('listening');
+        statusText.innerText = "आवाज़ नहीं आई सर, दोबारा दबाएं।";
+        speed = 0.018;
+      };
+    }
+  </script>
+</body>
+</html>
